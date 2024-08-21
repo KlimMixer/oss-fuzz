@@ -25,6 +25,7 @@ fuzz_harness=$(ls -d "$SRC"/*.cpp)
 for h in $fuzz_harness; do
   $CXX $CXXFLAGS -std=c++11 -Iinclude/ "$h" \
     -o "$OUT/$(basename "$h")" $LIB_FUZZING_ENGINE $SRC/tinyxml2/libtinyxml2.a
+  zip "$OUT/$(basename "$h")_seed_corpus.zip" $SRC/tinyxml2/resources/*
 done
 
 cp $SRC/*.dict $SRC/*.options $OUT/

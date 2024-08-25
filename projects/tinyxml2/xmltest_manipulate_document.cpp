@@ -16,6 +16,7 @@ limitations under the License.
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <list>
 
 #include <unistd.h>
 
@@ -25,25 +26,43 @@ using namespace std;
 // Entry point for LibFuzzer.
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 	std::string data_string(reinterpret_cast<const char*>(data), size);
-	XMLDocument doc, doc_destination;
-	XMLElement* element = doc.NewElement("First test data");
 
-	element->SetName(data_string.c_str(), false);
-	element->SetName(data_string.c_str(), true);
-	
-	element->SetText(data_string.c_str());
+	XMLDocument doc1(true, PRESERVE_WHITESPACE);
+	XMLDocument doc2(true, COLLAPSE_WHITESPACE);
+	XMLDocument doc3(true, PEDANTIC_WHITESPACE);
+	XMLDocument doc4(false, PRESERVE_WHITESPACE);
+	XMLDocument doc5(false, COLLAPSE_WHITESPACE);
+	XMLDocument doc6(false, PEDANTIC_WHITESPACE);
 
-	element->SetAttribute("existing_atribute", "init data");
-	element->SetAttribute("non_existing_atribute", data_string.c_str());
-
-	element->SetAttribute("existing_atribute_other_type", 0xDEADBEEF);
-	element->SetAttribute("existing_atribute_other_type", data_string.c_str());
-
-	element->SetAttribute("non_existing_atribute", data_string.c_str());
-	element->SetAttribute(data_string.c_str(), data_string.c_str());
+	list<XMLDocument*> docs = {&doc1, &doc2, &doc3, &doc4, &doc5, &doc6};
 
 	XMLPrinter printer;
-    doc.Print( &printer );
+
+	for(XMLDocument* doc : docs) {
+		XMLElement* element = doc->NewElement("First test data");
+
+		element->SetName(data_string.c_str(), false);
+		element->SetName(data_string.c_str(), true);
+
+		element->SetText(data_string.c_str());
+
+		element->SetAttribute("existing_atribute", "init data");
+		element->SetAttribute("existing_atribute", data_string.c_str());
+
+		char* existing_atribute;
+		element->QueryStringAttribute("existing_atribute", (const char**) &existing_atribute);
+
+		element->SetAttribute("existing_atribute_other_type", 0xDEADBEEF);
+		element->SetAttribute("existing_atribute_other_type", data_string.c_str());
+
+		int existing_atribute_other_type_value = 10;
+		element->QueryIntAttribute("existing_atribute_other_type", &existing_atribute_other_type_value);
+
+		element->SetAttribute("non_existing_atribute", data_string.c_str());
+		element->SetAttribute(data_string.c_str(), data_string.c_str());
+
+		doc->Print( &printer );
+	}
 
 	return 0;
 }

@@ -16,6 +16,7 @@ limitations under the License.
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <list>
 
 #include <unistd.h>
 
@@ -30,8 +31,21 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 	fwrite(data, size, 1, fp);
   	fclose(fp);
     
-	XMLDocument doc;
-	doc.LoadFile(pathname);
+	XMLDocument doc1(true, PRESERVE_WHITESPACE);
+	XMLDocument doc2(true, COLLAPSE_WHITESPACE);
+	XMLDocument doc3(true, PEDANTIC_WHITESPACE);
+	XMLDocument doc4(false, PRESERVE_WHITESPACE);
+	XMLDocument doc5(false, COLLAPSE_WHITESPACE);
+	XMLDocument doc6(false, PEDANTIC_WHITESPACE);
+
+	list<XMLDocument*> docs = {&doc1, &doc2, &doc3, &doc4, &doc5, &doc6};
+
+	XMLPrinter printer;
+
+	for(XMLDocument* doc : docs) {
+		doc->LoadFile(pathname);
+		doc->Print( &printer );
+	}
 
     unlink(pathname);
 	return 0;

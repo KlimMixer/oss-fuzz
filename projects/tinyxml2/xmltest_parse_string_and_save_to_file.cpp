@@ -16,28 +16,47 @@ limitations under the License.
 #include <cstdio>
 #include <cstdint>
 #include <cstdlib>
+#include <list>
 
 #include <unistd.h>
 
 using namespace tinyxml2;
 using namespace std;
 
+void save_in_file_test(XMLDocument* doc, const char* pathname) {
+	doc->SetBOM(true);
+	doc->SaveFile(pathname);
+	doc->SaveFile(pathname, true);
+
+	doc->SetBOM(false);
+	doc->SaveFile(pathname);
+	doc->SaveFile(pathname, true);
+}
+
 // Entry point for LibFuzzer.
 extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 	std::string data_string(reinterpret_cast<const char*>(data), size);
-	XMLDocument doc;
-	doc.Parse( data_string.c_str() );
-
 	char pathname[256];
 	sprintf(pathname, "/tmp/libfuzzer.%d", getpid());
 
-	doc.SetBOM(true);
-	doc.SaveFile(pathname);
-	doc.SaveFile(pathname, true);
+	XMLDocument doc1(true, PRESERVE_WHITESPACE);
+	XMLDocument doc2(true, COLLAPSE_WHITESPACE);
+	XMLDocument doc3(true, PEDANTIC_WHITESPACE);
+	XMLDocument doc4(false, PRESERVE_WHITESPACE);
+	XMLDocument doc5(false, COLLAPSE_WHITESPACE);
+	XMLDocument doc6(false, PEDANTIC_WHITESPACE);
 
-	doc.SetBOM(false);
-	doc.SaveFile(pathname);
-	doc.SaveFile(pathname, true);
+	list<XMLDocument*> docs = {&doc1, &doc2, &doc3, &doc4, &doc5, &doc6};
+
+	XMLPrinter printer;
+
+	for(XMLDocument* doc : docs) {
+		doc->Parse( data_string.c_str() );
+		save_in_file_test(doc, pathname);
+
+		doc->Parse( (const char*) data, size );
+		save_in_file_test(doc, pathname);
+	}
 
 	return 0;
 }
